@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Documentos conecta{% endblock %}
+
+{% block estilo %}
+<style>
+  #opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: 1rem;
+}
+.opcion {
+  cursor: grab;
+  padding: .4rem .8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+  .opcion:active { cursor: grabbing; }
+  .dragging { opacity: 0.5; transform: scale(1.1); }
+  #cuadro {
+  min-height: 120px;
+  border: 2px dashed #6c757d;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  padding: 1rem;
+}
+  #cuadro.over { background-color: #f8f9fa; }
+  #trash { min-height: 100px; border: 2px dashed red; margin-top: 20px; display: none; align-items: center; justify-content: center; color: red; font-weight: bold; }
+  #trash.over { background-color: #ffe5e5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+  <h2>Cargar documentos a Conecta</h2>
+
+    <!-- Selector de empresa -->
+    <label for="empresa">🏢 Selecciona la empresa:</label>
+    <select id="empresa" name="empresa" required>
+      <option value="">-- Selecciona una empresa --</option>
+      {% for empresa in empresas %}
+        <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+      {% endfor %}
+    </select>
+  <!-- Enlace informativo -->
+<div id="enlace-container" class="enlace-info" style="margin-bottom: 1rem;">
+  🌐 <strong>Enlace de Conecta:</strong>
+  <div id="enlace" class="enlace-valor">Selecciona una empresa para ver el enlace</div>
+</div>
+
+  <label for="token">🔑 Token:</label>
+  <input type="text" id="token" name="token" placeholder="Ingresa tu token" required>
+
+  <!-- Archivo -->
+  <label for="archivo">Seleccionar archivo</label>
+  <input type="file" id="archivo" class="form-control mb-3">
+
+  <!-- Procesar -->
+  <button id="btn-procesar" class="btn btn-primary mb-3">Procesar excel</button>
+
+  <!-- tablas resumen -->
+  <h4 class="mt-4">Cuentas</h4>
+  <table id="tabla1" class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Cuenta</th>
+        <th>Faltante</th>
+        <th>Base</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h4 class="mt-4">Terceros</h4>
+  <table id="tabla2" class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Tercero</th>
+        <th>Faltante</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+
+  <!-- Checks -->
+  <h4 class="mt-4">Agrupar por</h4>
+  <div id="checks" class="form-check">
+    <div><input type="checkbox" class="form-check-input" value="Opción A"> Nit</div>
+    <div><input type="checkbox" class="form-check-input" value="Opción B"> Fecha</div>
+    <div><input type="checkbox" class="form-check-input" value="Opción C"> Numero de documento</div>
+  </div>
+
+  <button id="btn-enviar" class="btn btn-success mt-3">Comenzar</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const data = {
+  tabla1: [
+    { Cuenta: "valor1A", Faltante: "valor1B", Base: "valor1C" },
+    { Cuenta: "valor2A", Faltante: "valor2B", Base: "valor2C" }
+  ],
+  tabla2: [
+    { Tercero: "valorX1", Faltante: "valorY1" },
+    { Tercero: "valorX2", Faltante: "valorY2" }
+  ]
+};
+  // --- Funciones para llenar tablas ---
+  function llenarTabla1(datos) {
+    const tbody = document.querySelector("#tabla1 tbody");
+    tbody.innerHTML = "";
+    datos.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.Cuenta}</td>
+        <td>${row.Faltante}</td>
+        <td>${row.Base}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function llenarTabla2(datos) {
+    const tbody = document.querySelector("#tabla2 tbody");
+    tbody.innerHTML = "";
+    datos.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.Tercero}</td>
+        <td>${row.Faltante}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // --- Botón procesar ---
+  document.getElementById('btn-procesar').addEventListener('click', () => {
+    const empresa = document.getElementById('empresa').value;
+    const archivo = document.getElementById('archivo').files[0];
+    const token = document.getElementById('token').value;
+
+    if (!empresa || !archivo || !token) {
+      alert("Debes seleccionar empresa, archivo y token antes de procesar");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('empresa', empresa);
+    formData.append('archivo', archivo);
+    formData.append('token', token);
+
+    fetch('/amgt/conecta/documentos/run/', {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      // 👉 Aquí asumimos que el backend devuelve algo como:
+      // {
+      //   tabla1: [{Cuenta:"...", Faltante:"...", Base:"..."}, ...],
+      //   tabla2: [{Tercero:"...", Faltante:"..."}, ...]
+      // }
+      if (data.tabla1) llenarTabla1(data.tabla1);
+      if (data.tabla2) llenarTabla2(data.tabla2);
+    })
+    .catch(err => {
+      alert("Error procesando el archivo: " + err);
+    });
+  });
+
+  // --- Botón enviar (mantiene lógica de checks) ---
+  document.getElementById('btn-enviar').addEventListener('click', () => {
+    const empresa = document.getElementById('empresa').value;
+    const archivo = document.getElementById('archivo').files[0];
+    const checks = [...document.querySelectorAll('#checks input:checked')].map(el => el.value);
+    const token = document.getElementById('token').value;
+
+    if (checks.length === 0) {
+      alert("Debes seleccionar al menos una opción en 'Agrupar por'");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('empresa', empresa);
+    if (archivo) formData.append('archivo', archivo);
+    formData.append('checks', JSON.stringify(checks));
+    formData.append('token', token);
+
+    fetch('/registro-movimientos/facturas/run/', {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    }).then(res => res.json())
+      .then(data => alert("Datos enviados correctamente"));
+  });
+
+  // --- Enlace empresa ---
+  document.getElementById('empresa').addEventListener('change', function() {
+    const empresaId = this.value;
+    const enlaceDiv = document.getElementById('enlace');
+
+    if (empresaId) {
+      fetch(`/amgt/ajax/enlace-conecta/${empresaId}`)
+        .then(response => response.json())
+        .then(data => {
+          enlaceDiv.textContent = data.enlace || 'No disponible';
+        });
+    } else {
+      enlaceDiv.textContent = 'Selecciona una empresa para ver el enlace';
+    }
+  });
+  </script>
+{% endblock %}

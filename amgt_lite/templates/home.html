@@ -1,0 +1,85 @@
+<!-- resultado.html -->
+{% extends "base.html" %}
+    {% block estilo %}
+  <style>
+    .resultado-page {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #e0f7fa, #e1bee7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .resultado-page .panel-container {
+      background-color: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .resultado-page .panel-container h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #4a148c;
+    }
+
+    .resultado-page ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .resultado-page li {
+      margin-bottom: 15px;
+    }
+
+    .resultado-page a {
+      display: block;
+      padding: 12px 16px;
+      background-color: #f3e5f5;
+      border-left: 4px solid #7b1fa2;
+      border-radius: 6px;
+      font-size: 15px;
+      color: #4a148c;
+      font-weight: bold;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+
+    .resultado-page a:hover {
+      background-color: #e1bee7;
+    }
+
+    .resultado-page .icon {
+      margin-right: 8px;
+    }
+  </style>
+  
+    {% endblock %}
+</head>
+<body>
+      {% block content %}
+<div class="resultado-page">
+  <div class="panel-container">
+    <h1>Servicios disponibles</h1>
+    <ul>
+      <li><a href="#" target="_blank">🛠 Panel de Administración</a></li>
+      <li><a href="#">📂 Descargar documentos</a></li>
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Manejo de documentos
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#">Generar resumen listado DIAN</a></li>
+          <li><a class="dropdown-item" href="#">Agrupar libro diario</a></li>
+          <li><a class="dropdown-item" href="#">Ordenar documentos</a></li>
+        </ul>
+      </div>
+    </ul>
+  </div>
+    {% endblock %}
+</body>
+</html>

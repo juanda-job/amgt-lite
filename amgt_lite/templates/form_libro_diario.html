@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso a conecta{% endblock %}
+
+{% block content %}
+
+<div class="form-container">
+  <h2>Agrupar libro diario Conecta</h2>
+  <form action="{% url 'api_informe_libro_diario_comando' %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <!-- Subida de archivo -->
+      <label for="archivo">📄 Archivo :</label>
+      <input type="file" id="archivo" name="archivo" accept=".csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <button type="submit">🚀 Comenzar</button>
+  </form>
+</div>
+
+
+{% endblock %}

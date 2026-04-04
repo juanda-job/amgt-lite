@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado{% endblock %}
+
+{% block content %}
+<main>
+  <div class="resultado-container">
+    <h2>📊 Resultado del proceso</h2>
+    <div class="resultado-box" id="resultado">
+      <p>{{ resultado }}</p>
+    </div>
+  </div>
+</main>
+
+<style>
+  .resultado-container {
+    background-color: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .resultado-container h2 {
+    color: #4a148c;
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+
+  .resultado-box {
+    background-color: #f3e5f5;
+    border-left: 6px solid #7b1fa2;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: left;
+  }
+
+  .resultado-box p {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+  }
+</style>
+{% endblock %}

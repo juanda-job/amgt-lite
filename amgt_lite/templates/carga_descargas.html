@@ -1,0 +1,249 @@
+  {% extends "base.html" %}
+
+  {% block title %}Progreso descarga{% endblock %}
+
+   {% block estilo %}
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    .form-descargas {
+      font-family: 'Roboto', sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;   /* 👈 cambia a flex-start */
+      min-height: 100vh;
+      padding-top: 40px;             /* 👈 añade espacio arriba */
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 1.6rem;
+      color: #4a148c; /* Morado */
+    }
+
+    .loader {
+      margin-top: 20px;
+      border: 6px solid #ddd;          /* borde gris claro */
+      border-top: 6px solid #7b1fa2;   /* borde morado */
+      border-radius: 50%;
+      width: 50px;                     /* más grande */
+      height: 50px;
+      animation: spin 1s linear infinite;
+      display: inline-block;           /* asegura que se vea bien */
+    }
+
+    .check {
+      margin-top: 20px;
+      font-size: 3rem;                 /* más grande */
+      color: #4a148c;
+      display: inline-block;
+    }
+
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .barra-contenedor {
+      width: 100%;
+      background-color: #eee; /* gris claro */
+      border-radius: 10px;
+      overflow: hidden;
+      height: 25px;
+      margin: 10px 0;
+    }
+
+    .barra-progreso {
+      height: 100%;
+      background-color: #7b1fa2; /* morado */
+      text-align: center;
+      line-height: 25px;
+      color: white;
+      font-size: 0.9rem;
+      transition: width 0.3s ease;
+    }
+
+
+    .header-descargas {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;                     /* más espacio entre título y loader */
+      margin-bottom: 18px;           /* separación con los bloques */
+    }
+
+    .header-descargas h1 {
+      font-size: 1.6rem;             /* más grande */
+      font-weight: bold;
+      color: #4a148c;
+      margin: 0;
+    }
+
+    .contenedor-bloques {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .bloque {
+      background-color: #fff; /* blanco */
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .bloque h2 {
+      color: #4a148c; /* morado */
+      margin-bottom: 10px;
+      font-size: 1.4rem;  
+    }
+
+    .bloque h3 {
+      margin: 5px 0;
+      color: #333; /* gris oscuro */
+      font-size: 1.3rem;  
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #7b1fa2; /* morado */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #4a148c; /* morado más oscuro */
+    }
+  input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  border: 2px solid #7b1fa2;   /* borde morado */
+  border-radius: 8px;
+  font-size: 15px;
+  color: #4a148c;              /* texto morado oscuro */
+  background-color: #fafafa;   /* fondo gris muy claro */
+  transition: all 0.3s ease;
+}
+
+input[type="text"]::placeholder {
+  color: #9c27b0;              /* placeholder morado suave */
+  opacity: 0.7;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #4a148c;       /* borde más oscuro al enfocar */
+  box-shadow: 0 0 6px rgba(123, 31, 162, 0.4); /* glow morado */
+  background-color: #fff;      /* fondo blanco al enfocar */
+}
+  </style>
+ {% endblock %}
+  {% block content %}
+  
+<div class="form-descargas">
+    <div class="header-descargas">
+        <h1>Progreso de la descarga</h1>
+        <div id="icono" class="loader"></div>
+    </div>
+
+    <div class="bloque">
+        <h2 id="mensaje-Estado"></h2>
+        <h3 id="mensaje-CantTotal">Total documentos: ? </h3>
+        <h3 id="mensaje-CantDescargado">Documentos descargados: 0</h3>
+
+        <div class="barra-contenedor">
+            <div class="barra-progreso" id="barra">0%</div>
+        </div>
+    </div>
+
+    <div class="bloque">
+        <h2 id="Name_token">Token</h2>
+        <label for="token">🔑 Ingresa tu token:</label>
+        <input type="text" id="token" name="token" placeholder="Escribe tu token aquí" required>
+        <button type="button" onclick="enviarToken()">Enviar</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  
+  function enviarToken() {
+    const token = document.getElementById("token").value;
+    console.log("Token ingresado:", token);
+
+    const formData = new FormData();
+    formData.append("token", token);
+
+    fetch("/descarga/token/", {
+      method: "POST",
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log("Respuesta del backend:", data);
+      alert("Token actualizado: " + data.token);
+    })
+    .catch(error => {
+      console.error("Error al enviar token:", error);
+    });
+  }
+
+  function actualizarMensaje() {
+    fetch('/amgt/dian/descargar/get/estado/')
+      .then(response => response.json())
+      .then(data => {
+
+          console.log(data)
+          document.getElementById('mensaje-Estado').textContent = data.estado;
+          document.getElementById('mensaje-CantTotal').textContent = "Total Documentos: " + (data.total ?? 0);
+          document.getElementById('mensaje-CantDescargado').textContent = "Documentos descargados: " + (data.descargados ?? 0);
+
+          let porcentaje = data.total > 0 ? Math.round((data.descargados / data.total) * 100) : 0;
+          document.getElementById('barra').style.width = porcentaje + "%";
+          document.getElementById('barra').textContent = porcentaje + "%";
+          const icono = document.getElementById("icono");
+
+          let delay = 3000;
+                  // 👇 Control de visibilidad del círculo
+          if (data.estado === "No iniciado") {
+            icono.style.display = "none"; 
+          }
+          else if (data.estado === "Cargando...") {
+              delay = 1000;
+          } else if (data.estado === "Terminado") {
+              console.log("Todo listo.");
+              
+              icono.className = "check";
+              icono.textContent = "✔";
+          }
+
+          setTimeout(actualizarMensaje, delay);
+      });
+  }
+
+  //actualizarMensaje()
+  document.addEventListener("DOMContentLoaded", actualizarMensaje);
+</script>
+{% endblock %}
+</html>

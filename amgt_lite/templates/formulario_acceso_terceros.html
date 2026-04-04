@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Subir terceros{% endblock %}
+
+{% block content %}
+
+<div class="form-container">
+  <h2>Acceso a Conecta</h2>
+  <form action="{% url 'cargar_terceros' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- Selector de empresa -->
+    <label for="empresa">🏢 Selecciona la empresa:</label>
+    <select id="empresa" name="empresa" required>
+      <option value="">-- Selecciona una empresa --</option>
+      {% for empresa in empresas %}
+        <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+      {% endfor %}
+    </select>
+    <!-- Enlace informativo -->
+    <div id="enlace-container" class="enlace-info">
+      🌐 <strong>Enlace de Conecta:</strong>
+      <div id="enlace" class="enlace-valor">Selecciona una empresa para ver el enlace</div>
+    </div>
+        <!-- Subida de archivo CSV -->
+        <label for="archivo">📄 Archivo CSV o Excel:</label>
+        <input type="file" id="archivo" name="archivo" accept=".csv">
+    <button type="submit">Comenzar</button>
+    <input type="hidden" name="api_url" value="amgt/comando/get/resultado/carga-terceros/">
+  </form>
+</div>
+
+<script>
+document.getElementById('empresa').addEventListener('change', function() {
+  const empresaId = this.value;
+  const enlaceDiv = document.getElementById('enlace');
+
+  if (empresaId) {
+    fetch(`/amgt/comando/ajax/enlace-conecta/?id=${empresaId}`)
+      .then(response => response.json())
+      .then(data => {
+        enlaceDiv.textContent = data.enlace || 'No disponible';
+      });
+  } else {
+    enlaceDiv.textContent = 'Selecciona una empresa para ver el enlace';
+  }
+});
+</script>
+
+{% endblock %}
