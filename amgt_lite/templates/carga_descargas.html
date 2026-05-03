@@ -44,6 +44,13 @@
       color: #4a148c;
       display: inline-block;
     }
+    .x {
+      margin-top: 20px;
+      font-size: 3rem;                 /* más grande */
+      color: #8c1414;
+      display: inline-block;
+    }
+
 
 
     @keyframes spin {
@@ -156,6 +163,25 @@ input[type="text"]:focus {
   box-shadow: 0 0 6px rgba(123, 31, 162, 0.4); /* glow morado */
   background-color: #fff;      /* fondo blanco al enfocar */
 }
+
+.btn-cancelar {
+  width: 100%;
+  padding: 12px;
+  background-color: #e53935; /* rojo */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 10px;
+}
+
+.btn-cancelar:hover {
+  background-color: #b71c1c; /* rojo más oscuro */
+}
+
   </style>
  {% endblock %}
   {% block content %}
@@ -181,13 +207,23 @@ input[type="text"]:focus {
         <label for="token">🔑 Ingresa tu token:</label>
         <input type="text" id="token" name="token" placeholder="Escribe tu token aquí" required>
         <button type="button" onclick="enviarToken()">Enviar</button>
+        <button type="button" class="btn-cancelar" onclick="cancelarDescargas()">Cancelar descargas</button>
     </div>
 </div>
 {% endblock %}
 
-{% block script %}
+{% block scripts %}
 <script>
-  
+  function cancelarDescargas() {
+  fetch("/amgt/dian/descargas/set/stop/", {
+    method: "POST"
+  })
+  .catch(error => {
+    console.error("Error al cancelar descargas:", error);
+    alert("No se pudo cancelar la descarga.");
+  });
+}
+
   function enviarToken() {
     const token = document.getElementById("token").value;
     console.log("Token ingresado:", token);
@@ -195,7 +231,7 @@ input[type="text"]:focus {
     const formData = new FormData();
     formData.append("token", token);
 
-    fetch("/descarga/token/", {
+    fetch("/amgt/dian/descargas/set/token/", {
       method: "POST",
       body: formData
     })
@@ -210,7 +246,7 @@ input[type="text"]:focus {
   }
 
   function actualizarMensaje() {
-    fetch('/amgt/dian/descargar/get/estado/')
+    fetch('/amgt/dian/descargas/get/estado/')
       .then(response => response.json())
       .then(data => {
 
@@ -228,22 +264,31 @@ input[type="text"]:focus {
                   // 👇 Control de visibilidad del círculo
           if (data.estado === "No iniciado") {
             icono.style.display = "none"; 
-          }
-          else if (data.estado === "Cargando...") {
+            setTimeout(actualizarMensaje, delay);
+          } else if (data.estado === "Cargando...") {
               delay = 1000;
+              setTimeout(actualizarMensaje, delay);
+          } else if (data.estado === "Descargando") {
+              delay = 1000;
+              setTimeout(actualizarMensaje, delay);
           } else if (data.estado === "Terminado") {
               console.log("Todo listo.");
               
               icono.className = "check";
               icono.textContent = "✔";
+          } else if (data.estado === "Cancelado") {
+              console.log("Cancelado.");
+              
+              icono.className = "x";
+              icono.textContent = "X";
           }
 
-          setTimeout(actualizarMensaje, delay);
+          
       });
   }
 
-  //actualizarMensaje()
-  document.addEventListener("DOMContentLoaded", actualizarMensaje);
+  actualizarMensaje()
+// document.addEventListener("DOMContentLoaded", actualizarMensaje);
 </script>
 {% endblock %}
 </html>

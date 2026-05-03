@@ -8,13 +8,13 @@ from typing import List
 from playwright.async_api import Page
 from playwright.sync_api import sync_playwright, Page
 
-def verificar_terceros_services(page, terceros):
+def verificar_terceros_services(page:Page, terceros):
     print(terceros)
-    page.get_by_role("button", name="Nuevo").click()
+    page.get_by_text("Nuevo").click()
     terceros_null = []
     terceros_verificados = []
     for tercero in terceros:
-        if not verificar_terceros(page, tercero):
+        if not verificar_terceros(page, str(tercero)):
             terceros_null.append(tercero)
         else:
             terceros_verificados.append(tercero)           
@@ -29,26 +29,32 @@ def verificar_terceros_services(page, terceros):
 
 def verificar_cuentas_services(page, cuentas):
     print(cuentas)
-    page.get_by_role("button", name="Nuevo").click()
+    page.get_by_text("Nuevo").click()
     cuentas_null = []
     cuentas_verificadas = []
     cuentas_base = []
 
     for cuenta in cuentas:
-        if not verificar_cuentas(page, cuenta):
+        if not verificar_cuentas(page, str(cuenta)):
             cuentas_null.append(cuenta)
         else:
+            cuentas_verificadas.append(cuenta)
+        if(str(cuenta) == "24080219"):
+            cuentas_base.append(cuenta)
+            """
+        else:
             try:
-                set_valor(page, 1, columnas_items["debito"], True, 500, 19)
+                set_valor(page, 1, columnas_items["debito"], str(500), str(19))
                 cuentas_base.append(cuenta)
                 cuentas_verificadas.append(cuenta)
             except:
                 try:
-                    set_valor(page, 1, columnas_items["credito"], True, 500, 19)
+                    set_valor(page, 1, columnas_items["credito"], str(500), str(19))
                     cuentas_base.append(cuenta)
                     cuentas_verificadas.append(cuenta)
                 except:
                     cuentas_verificadas.append(cuenta)
+                    """
     if len(cuentas_null) > 0:
         print("hay cuentas no encontrados")
         print("no se encontraron las siguientes cuentas:")

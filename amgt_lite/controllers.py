@@ -5,10 +5,10 @@ from django.http import JsonResponse
 from .scripts.log import *
 import json
 from .scripts.dian import estado, descargar_documentos
-from .scripts.conecta import x, cargar_documentos,extraer_terceros,extraer_cuentas, verificar_terceros as vt, verificar_cuentas as vc, validar_porcentajes, limpiarDatos
+from .scripts.conecta import x, XConecta, cargar_documentos,extraer_terceros,extraer_cuentas, verificar_terceros as vt, verificar_cuentas as vc, validar_porcentajes, limpiarDatos
 from .scripts.comando import crear_terceros_run
 import threading
-
+from django.views.decorators.csrf import csrf_exempt
 
 def get_enlace(request, id):
     try:
@@ -48,7 +48,7 @@ def crear_terceros(request):
             return render(request, "resultado.html", {"resultado": "Formato de archivo no soportado"}, status=400)
     except Exception as e:
         return render(request, "resultado.html", {"resultado": f"Error procesando archivo: {str(e)}"}, status=500)
-
+ 
     # Ejecutar proceso
     columnas_requeridas = [
         "Tipo_Documento",
@@ -76,7 +76,7 @@ def crear_terceros(request):
     except Exception as e:
         return render(request, "resultado.html", {"resultado": f"Error interno del server: {str(e)}"}, status=500)
 
-    return render(request, "resultado.html", {"resultado": "Proceso ejecutado exitosamente"})
+    return render(request, "resultado.html", {"resultado": "Proceso ejecutado exitosamente"},status=200)
 
 
 #----------------------------------Apis de produccion-----------------------------
@@ -89,7 +89,7 @@ def api_dian_descargar(request):
         cufes_texto = request.POST.get("cufes", "")
         cufes = [u.strip() for u in cufes_texto.splitlines() if u.strip()]
         tam = len(cufes)
-
+        ruta = request.POST.get("ruta", "").strip()
         registrar_paso(f"Se solicito descargar {tam} documentos")
         # Enviamos los datos a la clase encargada
         estado.clear()
@@ -97,10 +97,10 @@ def api_dian_descargar(request):
 
         # Corremos el servicio de descargar documentos de la DIAN
         registrar_paso(f"Inciando proceso de descargar {tam} documentos")
-        descargar_documentos(cufes)
-        return JsonResponse({"status": "ok"}, status=200)
+        descargar_documentos(cufes,ruta)
+        return render(request, "carga_descargas.html", status=200)
     else:
-        return JsonResponse({"error": "Método no permitido"}, status=405)
+        return render(request, "resultado.html", {"resultado": "metodo no permitido"}, status=405)
 
 
 def api_getEstado(request):
@@ -111,7 +111,11 @@ def api_getEstado(request):
     # Obtenemos el estado del token
     activo = estado.get_activo()
 
-    if total == 0:
+    cancelado = estado.get_stop()
+    print(cancelado)
+    if cancelado == True:
+        msj = "Cancelado"
+    elif total == 0:
         msj = "No iniciado"
     elif descargados == 0:
         msj = "Cargando..."
@@ -131,9 +135,10 @@ def api_getEstado(request):
         "total": total,
         "estado": msj
     })
-
-def api_cancelar_descarga():
+@csrf_exempt
+def api_cancelar_descarga(request):
     estado.set_stop(True)
+    return JsonResponse({"status": "cancelado"}, status=200)
 
 def api_actualizar_token(request):
     if request.method == "POST":
@@ -160,7 +165,7 @@ def registrar_movimientos(request):
         return JsonResponse({"error": "Método no permitido"}, status=405)
     empresa_id = request.POST.get('empresa')
     archivo = request.FILES.get('archivo')
-    cuentas = request.POST.get('cuentas')   
+    cuentas = x.get_cuentas_base()   
     checks = request.POST.get('checks')     
     token = request.POST.get('token')
     
@@ -168,8 +173,6 @@ def registrar_movimientos(request):
         return JsonResponse({"error": "empresa no valida"}, status=400)
     if not archivo:
         return JsonResponse({"error": "archivo no valido"}, status=400)
-    if not cuentas:
-        return JsonResponse({"error": "cuentas no valida"}, status=400)
     if not checks: 
         return JsonResponse({"error": "checks no validos"}, status=400)
     if not token:
@@ -238,7 +241,8 @@ def registrar_movimientos(request):
     return JsonResponse({"resultado": "Proceso ejecutado correctamente."}, status=200)
 
 hilo_terceros=None
-hilo_cuentas=None
+hilo_cuentas1=None
+hilo_cuentas2=None
 
 def api_verificar_documentos_conecta(request):
     if request.method != 'POST':
@@ -247,6 +251,8 @@ def api_verificar_documentos_conecta(request):
     empresa_id = request.POST.get('empresa')
     archivo = request.FILES.get('archivo')  
     token = request.POST.get('token')
+
+
     
     if not empresa_id:
         return JsonResponse({"error": "empresa no valida"}, status=400)
@@ -271,19 +277,52 @@ def api_verificar_documentos_conecta(request):
         return JsonResponse({"error": "Formato no soportado"}, status=400)
     try:
         cuentas_finales = []
-        if empresa_id == x.get_id_empresa:
-            cuentas_finales = list(set(extraer_cuentas(df)).difference(x.get_cuentas_verificadas()))
+        print(empresa_id)
+        print(x.get_id_empresa())
+        if empresa_id == x.get_id_empresa():
+            print("iniciamos")
+            cuentas_extraidas = set(extraer_cuentas(df))
+            print(cuentas_extraidas)
+            cuentas_verificadas = set(x.get_cuentas_verificadas() or [])
+            print(cuentas_verificadas)
+            cuentas_finales = list(cuentas_extraidas.difference(cuentas_verificadas))
+            print(cuentas_finales)
+        else:
+            x.reset()
+            x.set_id_empresa(empresa_id)
+            cuentas_finales = extraer_cuentas(df)
+            # Supongamos que cuentas_finales ya está definida
+        n = len(cuentas_finales)
+        # Calcular tamaño de cada parte
+        chunk_size = (n + 1) // 2  # divide en 3 lo más equilibrado posible
+
+        parte1 = cuentas_finales[:chunk_size]
+        parte2 = cuentas_finales[chunk_size:]
+
         if len(cuentas_finales) > 0:
-            hilo_cuentas = threading.Thread(target=vc, args=(enlace, token, cuentas_finales)).start()
- 
+            hilo_cuentas1 = threading.Thread(target=vc, args=(enlace, token, parte1))
+            hilo_cuentas2 = threading.Thread(target=vc, args=(enlace, token, parte2))
+            hilo_cuentas1.start()
+            hilo_cuentas2.start()
         terceros_finales = []
-        if id == x.get_id_empresa:
+        if empresa_id == x.get_id_empresa():
             terceros_finales = list(set(extraer_terceros(df)).difference(x.get_terceros_verificados()))
-        if len(terceros_finales) > 0:
-            hilo_terceros = threading.Thread(target=vt, args=(enlace, token, terceros_finales)).start()
+        else:
+            x.set_id_empresa(empresa_id)
+            terceros_finales = extraer_terceros(df)
         
-        hilo_terceros.join()
-        hilo_cuentas.join()
+        if len(terceros_finales) > 0:
+            hilo_terceros = threading.Thread(target=vt, args=(enlace, token, terceros_finales))
+            hilo_terceros.start()
+
+
+        if len(cuentas_finales) > 0:
+            hilo_cuentas1.join()
+            hilo_cuentas2.join()
+
+        if len(terceros_finales) > 0:
+            hilo_terceros.join()
+        print("termino la espera")
         data = {
             "tabla1": [],
             "tabla2": []
@@ -327,15 +366,6 @@ def api_verificar_documentos_conecta(request):
         "mensaje": f"error validando: {e}", 
     }, status=500)
     
-def get_x(request):
-    try:
-        hilo_terceros.join()
-        hilo_cuentas.join()
-        respuesta = x.to_dict
-        return JsonResponse(respuesta, status=200)
-    except Exception as e:
-        return render(request, "resultado.html", {"resultado": f"error verificando los datos: {e}"}, status=500)
- 
 
 
 def api_extract_cuentas_and_terceros_to_csv(request):
@@ -412,13 +442,14 @@ def api_generar_contapyme_excel_xml(request):
 
         # Extraer y limpiar
         df = extraer_facturas(ruta)
+        print(df.head())
         df_explorer = limpiar_facturas(df)
-
-        if tipo == "recibidos":
+        print(tipo)
+        if tipo == "emisor":
             df_contapyme = generarContapymeRecibidos(df_explorer)
         else:
             df_contapyme = generarContapymeEmitidos(df_explorer)
-
+        print(df_contapyme.head())
         # Convertir a CSV en memoria
         csv_data = df_contapyme.to_csv(index=False, sep=";", encoding="utf-8")
 
@@ -541,7 +572,7 @@ def api_ordenar_facturas(request):
             return JsonResponse({"error": "El modo no es válido"}, status=400)
 
         resultado = ordenar(ruta_carpeta, archivo, modo)
-        return render(request, "resultado_documentos.html", {"resultado": resultado})
+        return render(request, "resultado.html", {"resultado": resultado})
 
     except Exception as e:
         return JsonResponse({"error": "Error interno al ordenar facturas", "detalle": str(e)}, status=500)

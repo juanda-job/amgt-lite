@@ -2,6 +2,7 @@ import pandas as pd
 import unicodedata
 
 def limpiar_facturas(df: pd.DataFrame) -> pd.DataFrame:
+    print("vamos a limpiar los datos")
     # Creamos un dataset explorer para no modificar el original
     df_explore = df.copy()
 
@@ -36,7 +37,11 @@ def limpiar_facturas(df: pd.DataFrame) -> pd.DataFrame:
             df_explore[col] = pd.to_numeric(df_explore[col], errors="coerce").astype("Float64").round(2)
 
     if "CANTIDAD" in df_explore.columns:
-        df_explore["CANTIDAD"] = pd.to_numeric(df_explore["CANTIDAD"], errors="coerce").astype("Int64")
+        df_explore["CANTIDAD"] = (
+            pd.to_numeric(df_explore["CANTIDAD"], errors="coerce")
+            .round()
+            .astype("Int64")
+)
 
     # 6. Limpiar la columna NUMERO DOCUMENTO: eliminar letras y dejar solo números
     if "NUMERO DOCUMENTO" in df_explore.columns:

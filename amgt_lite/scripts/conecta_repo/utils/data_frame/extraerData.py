@@ -83,18 +83,16 @@ from pathlib import Path
 
 def extraer_terceros(df) -> list[str]:
     # Validar que las columnas existen
-    if ["nit"] not in df.columns:
+    if "NIT" not in df.columns:
         raise KeyError(f"La columna nit no existe en el CSV")
     # Obtener lista única
-    return df["nit"].dropna().unique().tolist()
+    return df["NIT"].dropna().unique().tolist()
    
 def extraer_cuentas(df) -> list[str]:
-    # Validar que las columnas existen
-    if ["cuenta"] not in df.columns:
-        raise KeyError(f"La columna cuenta no existe en el CSV")
-    # Obtener lista única
-    return df["cuenta"].dropna().unique().tolist()
-   
+    if "CUENTA" not in df.columns:
+        raise KeyError("La columna 'cuenta' no existe en el CSV")
+    return df["CUENTA"].dropna().unique().tolist()
+
 
 def extraer_terceros_y_cuentas(df) -> tuple[list[str], list[str]]:
     """

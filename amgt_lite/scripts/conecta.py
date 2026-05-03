@@ -67,6 +67,26 @@ class XConecta:
         with self._lock:
             self.data['terceros_verificados'] = value
 
+    def add_cuentas_null(self, value: List[str]):
+        with self._lock:
+            # Si no existe, inicializa como lista vacía
+            if "cuentas_null" not in self.data:
+                self.data["cuentas_null"] = []
+            # Agregar nuevos valores evitando duplicados
+            self.data["cuentas_null"].extend(v for v in value if v not in self.data["cuentas_null"])
+
+    def add_cuentas_verificadas(self, value: List[str]):
+        with self._lock:
+            if "cuentas_verificadas" not in self.data:
+                self.data["cuentas_verificadas"] = []
+            self.data["cuentas_verificadas"].extend(v for v in value if v not in self.data["cuentas_verificadas"])
+
+    def add_cuentas_base(self, value: List[str]):
+        with self._lock:
+            if "cuentas_base" not in self.data:
+                self.data["cuentas_base"] = []
+            self.data["cuentas_base"].extend(v for v in value if v not in self.data["cuentas_base"])
+
     def set_cuentas_null(self, value: List[str]):
         with self._lock:
             self.data['cuentas_null'] = value
@@ -92,6 +112,18 @@ class XConecta:
         """Devuelve una copia segura del diccionario completo"""
         with self._lock:
             return dict(self.data)
+    def reset(self):
+        with self._lock:
+            self.data = {
+                'id_empresa': "",
+                'terceros_null': [],
+                'terceros_verificados': [],
+                'cuentas_null': [],
+                'cuentas_verificadas': [],
+                'cuentas_base': [],
+                'bandera_cuentas': False,
+                'bandera_terceros': False
+            }
 
 x = XConecta()
 
@@ -99,10 +131,11 @@ x = XConecta()
 def verificar_terceros(enlace, token, terceros):
     try: 
         with sync_playwright() as p:
-            browser, context, page = new_context(p)
-            page = go_to_conecta(login(page, enlace, "DRAMIREZ", '41946592'), context, token)
+            browser, context, page = new_context(p, headless=True)
+            page, page2= go_to_conecta(login(page, enlace, "DRAMIREZ", '41946592'), context, token)
             print("iniciando verificacion")
-            terceros_verificados, terceros_null = verificar_terceros_services(page, terceros) 
+            page.wait_for_timeout(10000)
+            terceros_verificados, terceros_null = verificar_terceros_services(page2, terceros) 
 
             # Actualizamos la variable x
             x.set_terceros_verificados(terceros_verificados)
@@ -120,15 +153,16 @@ def verificar_cuentas(enlace, token, cuentas):
 
     try:
         with sync_playwright() as p:
-            browser, context, page = new_context(p)
-            page = go_to_conecta(login(page, enlace, "DRAMIREZ", '41946592'), context, token)
+            browser, context, page = new_context(p,headless=True)
+            page, page2= go_to_conecta(login(page, enlace, "DRAMIREZ", '41946592'), context, token)
+            page.wait_for_timeout(10000)
             print("iniciando verificacion")
-            cuentas_verificadas, cuentas_null, cuentas_base= verificar_cuentas_services(page, cuentas) 
+            cuentas_verificadas, cuentas_null, cuentas_base= verificar_cuentas_services(page2, cuentas) 
 
             # Actualizamos la variable x
-            x.set_cuentas_verificadas(cuentas_verificadas)
-            x.set_cuentas_null(cuentas_null)
-            x.set_cuentas_base(cuentas_base)
+            x.add_cuentas_verificadas(cuentas_verificadas)
+            x.add_cuentas_null(cuentas_null)
+            x.add_cuentas_base(cuentas_base)
             x.set_bandera_cuentas(True)
 
     except Exception as e:
@@ -141,7 +175,7 @@ def cargar_documentos(cuentas_bases, agrupaciones, enlace:str, df, token):
     try:
         with sync_playwright() as p:
             browser, context, page = new_context(p)
-            page = go_to_conecta(login(page,enlace,"DRAMIREZ",'41946592'), context, token)
+            page2, page = go_to_conecta(login(page,enlace,"DRAMIREZ",'41946592'), context, token)
             print("login exitoso")
             docs = extraer_documentos(agrupaciones,df)
             for doc in docs:

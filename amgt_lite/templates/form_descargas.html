@@ -37,6 +37,14 @@
           required 
           oninvalid="this.setCustomValidity('El token de la DIAN es obligatorio')" 
           oninput="this.setCustomValidity('')">
+
+        <!-- Campo para la ruta -->
+        <label for="ruta">📂 Ruta de la carpeta:</label>
+        <input type="text" id="ruta" name="ruta" 
+          placeholder="Ingresa la ruta de destino" 
+          required 
+          oninvalid="this.setCustomValidity('La ruta de destino es obligatorio')" 
+          oninput="this.setCustomValidity('')">
       <!-- Botón de acción -->
       <button type="submit">⬇️ Descargar</button>
     </form>

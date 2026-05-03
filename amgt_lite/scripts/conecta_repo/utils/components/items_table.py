@@ -195,8 +195,8 @@ def set_tercero(page: Page, fila: int, nit: str):
         raise Typing_exception(f"No se pudo escribir el NIT {nit}: {str(e)}")
 
     name = ""
-    aux = True
-    while aux:
+    aux = 3
+    while aux > 0:
         try:
             # Obtenemos todas las opciones desplegadas
             opciones = page.locator("mat-option span")
@@ -221,7 +221,9 @@ def set_tercero(page: Page, fila: int, nit: str):
 
         # Esperamos un poco antes de volver a intentar
         page.wait_for_timeout(1000)
-
+        aux = aux-1
+    if aux == 0:
+        raise Select_exception(f"No se pudo seleccionar la opción {name}: {str(e)}")
     try:
         # Seleccionamos la opción encontrada
         page.locator("mat-option span", has_text=name).first.click()
@@ -243,7 +245,7 @@ def set_valor(page:Page, fila:int, columna:int, base:bool, valor, porcentaje):
         input_locator.clear()  # Limpia el campo
     except Exception as e:
         raise Locator_exception(f"No se pudo localizar/limpiar el input de tercero: {str(e)}")
-    if(base):
+    try:
         campo = page.locator("mat-form-field:has-text('Valor base') input")
         campo.wait_for(state="visible", timeout=5000)
         base = float(valor)/float(porcentaje)*100
@@ -257,7 +259,7 @@ def set_valor(page:Page, fila:int, columna:int, base:bool, valor, porcentaje):
         campo.fill(porcentaje)
         page.get_by_role("button", name="Aceptar").click()
         page.wait_for_timeout(2000)
-    else:
+    except Exception as e:
         input_locator = celdas.nth(columna).locator("input")
         input_locator.fill(str(valor))
         input_locator.press("Enter")        

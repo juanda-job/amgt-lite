@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from collections import Counter
 
 def generarContapymeRecibidos(df: pd.DataFrame) -> pd.DataFrame:
@@ -51,7 +52,7 @@ def generarContapymeRecibidos(df: pd.DataFrame) -> pd.DataFrame:
                 "CUENTA": "",
                 "CENTRO DE COSTO": "",
                 "DETALLE": f"IMPUESTO {imp['IMPUESTO NOMBRE']} {imp['PORCENTAJE IMPUESTO']}%",
-                "DEBITO": imp["IMPUESTO VALOR"],
+                "DEBITO": round(float(imp["IMPUESTO VALOR"]),2),
                 "CREDITO": 0.0,
                 "BASE": row["TOTAL SIN IMPUESTOS"],
                 "NIT": nit_prov,
@@ -130,7 +131,7 @@ def generarContapymeEmitidos(df: pd.DataFrame) -> pd.DataFrame:
             "CREDITO": row["SUBTOTAL"],
             "BASE": 0.0,
             "NIT": nit_prov,
-            "NOMBRE": row["NOMBRE PROVEEDOR"],
+            "NOMBRE": row["NOMBRE CLIENTE"],
             "ESPACIO":"",
             "FECHA": row["FECHA"],
             "NUMERO DOCUMENTO": numero_doc,
@@ -155,10 +156,10 @@ def generarContapymeEmitidos(df: pd.DataFrame) -> pd.DataFrame:
                 "CENTRO DE COSTO": "",
                 "DETALLE": f"IMPUESTO {imp['IMPUESTO NOMBRE']} {imp['PORCENTAJE IMPUESTO']}%",
                 "DEBITO": 0.0,
-                "CREDITO": imp["IMPUESTO VALOR"],
+                "CREDITO": round(float(imp["IMPUESTO VALOR"]),2),
                 "BASE": row["TOTAL SIN IMPUESTOS"],
                 "NIT": nit_prov,
-                "NOMBRE": row["NOMBRE PROVEEDOR"],
+                "NOMBRE": row["NOMBRE CLIENTE"],
                 "ESPACIO":"",
                 "FECHA": row["FECHA"],
                 "NUMERO DOCUMENTO": numero_doc,
@@ -168,7 +169,7 @@ def generarContapymeEmitidos(df: pd.DataFrame) -> pd.DataFrame:
         
         dif = row["SUBTOTAL"] + impuesto - row["TOTAL CON IMPUESTOS"]
         final = row["SUBTOTAL"] - dif
-        fila_detalle["DEBITO"] = round(float(final), 2)
+        fila_detalle["CREDITO"] = round(float(final), 2)
 
         registros.append(fila_detalle)
         registros.extend(impuestos_list)   # <-- aquí el cambio
@@ -186,7 +187,7 @@ def generarContapymeEmitidos(df: pd.DataFrame) -> pd.DataFrame:
             "CREDITO": 0.0,
             "BASE": 0.0,
             "NIT": nit_prov,
-            "NOMBRE": row["NOMBRE PROVEEDOR"],
+            "NOMBRE": row["NOMBRE CLIENTE"],
             "ESPACIO":"",
             "FECHA": row["FECHA"],
             "NUMERO DOCUMENTO": numero_doc,
@@ -201,5 +202,9 @@ def generarContapymeEmitidos(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- 4. Eliminar filas donde DEBITO y CREDITO sean ambos 0 ---
     df_contapyme = df_contapyme[~((df_contapyme["DEBITO"] == 0) & (df_contapyme["CREDITO"] == 0))]
-
+    
+    
+    #df_contapyme["DEBITO"] = np.floor(df_contapyme["DEBITO"] / 100) * 100
+    #df_contapyme["CREDITO"] = np.floor(df_contapyme["CREDITO"] / 100) * 100
+    #df_contapyme["BASE"] = np.floor(df_contapyme["BASE"] / 100) * 100
     return df_contapyme

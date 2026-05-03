@@ -98,7 +98,7 @@ class AppState:
     # --- Métodos de stop ---
     def set_stop(self, acti: bool):
         self.stop = acti
-
+        
     def get_stop(self) -> bool:
         return self.stop
     
@@ -120,28 +120,7 @@ class AppState:
         self.stop = False
 
 estado = AppState()
-def descargar_documentos(cufes):
-    
-    root = tk.Tk()
-    root.title("Selecciona carpeta de descargas")
-
-    ruta_seleccionada = {"valor": None}  # diccionario para capturar el valor
-
-    def elegir_carpeta():
-        ruta = filedialog.askdirectory(title="Selecciona una carpeta")
-        ruta_seleccionada["valor"] = ruta   # guardar en variable externa
-        root.destroy()  # cerrar ventana después de elegir
-
-    btn = tk.Button(root, text="Elegir carpeta", command=elegir_carpeta)
-    btn.pack(pady=20)
-
-    root.mainloop()
-
-    ruta = ruta_seleccionada["valor"]
-
-    if not ruta:
-        print("No se seleccionó carpeta")
-        return
+def descargar_documentos(cufes, ruta):
 
     global activo
     estado.set_total(len(cufes))
