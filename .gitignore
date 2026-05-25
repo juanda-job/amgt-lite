@@ -136,11 +136,11 @@ celerybeat.pid
 
 # Environments
 .env
+.envrc
+.venv
 .main
 .dev
 .error
-.envrc
-.venv
 env/
 venv/
 ENV/
