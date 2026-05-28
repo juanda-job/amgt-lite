@@ -15,8 +15,9 @@ urlpatterns = [
     path('en-desarrollo/', views.en_desarrollo, name="en_desarrollo"),
     path('carga-descargas/', views.carga_descargas, name="carga_descargas"),
     path('amgt/docs/generar-contaexcel/form', views.form_contaexcel, name='form_generar_contaexcel'),
+    path('amgt/docs/generar-abanits/form', views.form_abanits, name='form_generar_abanits'),
+    path('amgt/docs/generar-abanits/run', controllers.api_generar_abanits, name='api_generar_abanits'),
     path('amgt/conecta/documentos/run/', controllers.registrar_movimientos, name='cargar_documentos'),
-    path('amgt/conecta/documentos/validar/',controllers.api_verificar_documentos_conecta, name='validar_documentos'),
     path('amgt/dian/descargas/run/', controllers.api_dian_descargar, name="dian_descargar_run"),
     path('amgt/comando/terceros/run/', controllers.crear_terceros, name="cargar_terceros"),
     #@GET - Api para traer el enlace de la empresa
