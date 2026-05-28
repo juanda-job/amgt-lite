@@ -71,7 +71,7 @@ def crearTercero(page:Page,df: DataFrame):
         page.select_option("#idRegimen", value=str(tercero.Régimen))
         page.select_option("#idNaturalezaProveedor", value=str(tercero.Tipo))
         page.select_option("#documentoSoporte", value=str(tercero.Documento_Soporte).lower())
-        if(str(tercero.Tipo)=="PERSONA NATURAL Y ASIMILADAS"):
+        if(str(tercero.Tipo)=="PERSONA NATURAL Y ASIMILADAS" or str(tercero.Tipo)=="2"):
             page.locator("#primerNombre").clear()
             page.locator("#otroNombre").clear()
             page.locator("#primerApellido").clear()

@@ -22,6 +22,9 @@ def form_descargas(request):
 def form_contaexcel(request):
     return render(request, "form_contaexcel.html")
 
+def form_abanits(request):
+    return render(request, "form_abanits.html")
+
 def form_carga_documentos(request):
     empresas = Empresa.objects.all()
     return render(request, "form_carga_documentos.html", {'empresas': empresas})
