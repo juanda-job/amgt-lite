@@ -107,12 +107,13 @@ def limpiarDatos(df):
     try:
         df.columns = [to_snake(c) for c in df.columns]
         #print(df.columns.tolist())
+        print(df.columns.tolist())
         columnas_deseadas = ['fecha', 'numero_documento', 'detalle', "tipo_documento", 'nit', 'cuenta', 'debito', 'credito', 'porcentaje' ]
         df = df[columnas_deseadas]
         #print(df.columns.tolist())
         #print(df[['debito','credito']].head(20))
-        df['debito'] = pd.to_numeric(df['debito'], errors='coerce').fillna(0)
-        df['credito'] = pd.to_numeric(df['credito'], errors='coerce').fillna(0)
+        df.loc[:, 'debito'] = pd.to_numeric(df['debito'], errors='coerce').fillna(0)
+        df.loc[:, 'credito'] = pd.to_numeric(df['credito'], errors='coerce').fillna(0)
         #print(df[['debito','credito']].head(20))
         df = df[~((df['debito'] == 0) & (df['credito'] == 0))]
         #print(df[['debito','credito']].head(20))
@@ -121,13 +122,14 @@ def limpiarDatos(df):
         #print(df.isna().sum())
         # Solo eliminar columnas vacías que no estén en las deseadas
         df = df.dropna(axis=1, how='all').reindex(columns=columnas_deseadas, fill_value=0)
+        
         #print(df.columns.tolist())
-        df = df.T.drop_duplicates().T
+        df = df.loc[:, ~df.columns.duplicated()]
         #print(df.columns.tolist())
         obj_cols = df.select_dtypes(include=["object"]).columns.tolist()
         #print(df.columns.tolist())
         #print(df[['debito','credito']].head(20))
-        print(df['porcentaje'].tolist())
+        print(df.columns.tolist())
         for col in obj_cols:
             df[col] = df[col].apply(normalize_text)
         print(df.fecha)

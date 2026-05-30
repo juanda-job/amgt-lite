@@ -165,7 +165,6 @@ def registrar_movimientos(request):
         return JsonResponse({"error": "Método no permitido"}, status=405)
     empresa_id = request.POST.get('empresa')
     archivo = request.FILES.get('archivo')
-    cuentas = x.get_cuentas_base()   
     checks = request.POST.get('checks')     
     token = request.POST.get('token')
     
@@ -222,184 +221,16 @@ def registrar_movimientos(request):
     try: 
         archivo_limpio = limpiarDatos(df)
     except Exception as e:
-        return JsonResponse({"error": f"Error limpiando el archivo: {str(e)}"}, status=500)
-    
+        return JsonResponse({"error": f"Error limpiando el archivo: {str(e)}"}, status=500)  
     print("se limpio el archivo")
-    porcentajes_validos, errores = validar_porcentajes(archivo_limpio, cuentas)
-    if not porcentajes_validos:
-        return JsonResponse({
-            "error": "faltan porcentajes en las bases",
-            "detalles": errores
-        }, status=405)
 
     # Ejecutar Playwright con tus parámetros
     try:
-        cargar_documentos(cuentas, agrupaciones_convertidas, enlace, archivo_limpio, token)
+        x_data = cargar_documentos(agrupaciones_convertidas, enlace, archivo_limpio, token)
+
     except Exception as e:
         return JsonResponse({"resultado": f"error en el proceso: {str(e)}"}, status=500)
-
-    return JsonResponse({"resultado": "Proceso ejecutado correctamente."}, status=200)
-
-hilo_terceros=None
-hilo_cuentas1=None
-hilo_cuentas2=None
-
-def api_verificar_documentos_conecta(request):
-    if request.method != 'POST':
-        return JsonResponse({"error": "Método no permitido"}, status=405)
-    
-    empresa_id = request.POST.get('empresa')
-    archivo = request.FILES.get('archivo')  
-    token = request.POST.get('token')
-
-
-    
-    if not empresa_id:
-        return JsonResponse({"error": "empresa no valida"}, status=400)
-    if not archivo:
-        return JsonResponse({"error": "archivo no valido"}, status=400)
-    if not token:
-        return JsonResponse({"error": "token no valido"}, status=400)
-    # Obtener enlace de la empresa
-    try:
-        empresa = Empresa.objects.get(id=empresa_id)
-        enlace = empresa.enlace_conecta
-    except Empresa.DoesNotExist:
-        enlace = None
-        mensaje += " Empresa no encontrada. "
-    # Detectar extensión y leer con pandas
-    if archivo.name.endswith('.csv'):
-        # Forzar separador por punto y coma
-        df = pd.read_csv(archivo, sep=";", encoding='latin-1')
-    elif archivo.name.endswith(('.xls', '.xlsx')):
-        df = pd.read_excel(archivo)
-    else:
-        return JsonResponse({"error": "Formato no soportado"}, status=400)
-    try:
-        cuentas_finales = []
-        print(empresa_id)
-        print(x.get_id_empresa())
-        if empresa_id == x.get_id_empresa():
-            print("iniciamos")
-            cuentas_extraidas = set(extraer_cuentas(df))
-            print(cuentas_extraidas)
-            cuentas_verificadas = set(x.get_cuentas_verificadas() or [])
-            print(cuentas_verificadas)
-            cuentas_finales = list(cuentas_extraidas.difference(cuentas_verificadas))
-            print(cuentas_finales)
-        else:
-            x.reset()
-            x.set_id_empresa(empresa_id)
-            cuentas_finales = extraer_cuentas(df)
-            # Supongamos que cuentas_finales ya está definida
-        n = len(cuentas_finales)
-        # Calcular tamaño de cada parte
-        chunk_size = (n + 1) // 2  # divide en 3 lo más equilibrado posible
-
-        parte1 = cuentas_finales[:chunk_size]
-        parte2 = cuentas_finales[chunk_size:]
-
-        if len(cuentas_finales) > 0:
-            hilo_cuentas1 = threading.Thread(target=vc, args=(enlace, token, parte1))
-            hilo_cuentas2 = threading.Thread(target=vc, args=(enlace, token, parte2))
-            hilo_cuentas1.start()
-            hilo_cuentas2.start()
-        terceros_finales = []
-        if empresa_id == x.get_id_empresa():
-            terceros_finales = list(set(extraer_terceros(df)).difference(x.get_terceros_verificados()))
-        else:
-            x.set_id_empresa(empresa_id)
-            terceros_finales = extraer_terceros(df)
-        
-        if len(terceros_finales) > 0:
-            hilo_terceros = threading.Thread(target=vt, args=(enlace, token, terceros_finales))
-            hilo_terceros.start()
-
-
-        if len(cuentas_finales) > 0:
-            hilo_cuentas1.join()
-            hilo_cuentas2.join()
-
-        if len(terceros_finales) > 0:
-            hilo_terceros.join()
-        print("termino la espera")
-        data = {
-            "tabla1": [],
-            "tabla2": []
-        }
-
-        # --- Cuentas ---
-        for cuenta in x.get_cuentas_null():
-            data["tabla1"].append({
-                "Cuenta": cuenta,
-                "Faltante": "Sí",
-                "Base": ""
-            })
-        for cuenta in x.get_cuentas_verificadas():
-            data["tabla1"].append({
-                "Cuenta": cuenta,
-                "Faltante": "No",
-                "Base": "No"
-            })
-        for cuenta in x.get_cuentas_base():
-            data["tabla1"].append({
-                "Cuenta": cuenta,
-                "Faltante": "No",
-                "Base": "Sí"
-            })
-
-        # --- Terceros ---
-        for tercero in x.get_terceros_null():
-            data["tabla2"].append({
-                "Tercero": tercero,
-                "Faltante": "Sí"
-            })
-        for tercero in x.get_terceros_verificados():
-            data["tabla2"].append({
-                "Tercero": tercero,
-                "Faltante": "No"
-            })
-
-        return JsonResponse(data, status=200)
-    except Exception as e:
-        return JsonResponse ({
-        "mensaje": f"error validando: {e}", 
-    }, status=500)
-    
-
-
-def api_extract_cuentas_and_terceros_to_csv(request):
-    # Verificamos que sea un POST y que venga el archivo
-    if request.method == "POST" and request.FILES.get("file"):
-        try:
-            # Leemos el CSV directamente desde el archivo recibido
-            csv_file = request.FILES["file"]
-            # Detectar extensión y leer con pandas
-            if csv_file.name.endswith('.csv'):
-                # Forzar separador por punto y coma
-                df = pd.read_csv(csv_file, sep=";", encoding='latin-1')
-            elif csv_file.name.endswith(('.xls', '.xlsx')):
-                df = pd.read_excel(csv_file)
-            else:
-                return JsonResponse({"error": "Formato no soportado"}, status=400)
-
-            
-            # Extraemos valores únicos de las columnas
-            terceros = extraer_terceros(df)
-            cuentas = extraer_cuentas(df)
-
-            # Devolvemos ambas listas en un JSON
-            return JsonResponse({
-                "terceros": terceros,
-                "cuentas": cuentas
-            }, safe=False, status=200)
-
-        except Exception as e:
-            return JsonResponse({
-                "error": f"Ocurrió un problema al procesar el archivo: {str(e)}"
-            }, status=500)
-
-    return JsonResponse({"error": "Debes enviar un archivo CSV válido"}, status=400)
+    return JsonResponse({"resultado": "Proceso ejecutado correctamente.", "data": x_data}, status=200)
 
 
 from django.http import HttpResponse
@@ -464,7 +295,51 @@ def api_generar_contapyme_excel_xml(request):
             {"error": "Error interno al generar el archivo", "detalle": str(e)},
             status=500
         )
+from .scripts.docs_repo.services.conta_excel.generar_ABANITS import generar_abanits
 
+def api_generar_abanits(request):
+    """
+    API:
+        Genera archivo ABANITS a partir de facturas XML.
+    Método:
+        {POST}
+    Parámetros:
+        request.POST.get("ruta") -> Ruta de la carpeta con los XML
+        request.POST.get("tipo") -> Emitidos o recibidos (1 o 2)
+    Respuesta:
+        HttpResponse con archivo CSV (facturas_contapyme.csv)
+        En caso de error: JsonResponse con mensaje y código de estado
+    """
+    try:
+        # Validación de parámetros
+        tipo = request.POST.get("tipo")
+        print(tipo)
+        if str(tipo) not in ["emisor", "receptor"]:   # ojo: POST devuelve string
+            return JsonResponse({"error": "El tipo no es valido"}, status=400)
+
+        ruta = request.POST.get("ruta")
+        if not ruta or len(ruta.strip()) == 0:
+            return JsonResponse({"error": "La ruta no es válida"}, status=400)
+
+        if tipo == "emisor":
+            df_contapyme = generar_abanits(ruta, True)
+        else:
+            df_contapyme = generar_abanits(ruta, False)
+        print(df_contapyme.head())
+        # Convertir a CSV en memoria
+        csv_data = df_contapyme.to_csv(index=False, sep=";", encoding="utf-8")
+
+        # Preparar respuesta HTTP para descarga
+        response = HttpResponse(csv_data, content_type="text/csv", status=200)
+        response["Content-Disposition"] = 'attachment; filename="facturas_contapyme.csv"'
+        return response
+
+    except Exception as e:
+        # Captura cualquier error inesperado y devuelve JSON estructurado
+        return JsonResponse(
+            {"error": "Error interno al generar el archivo", "detalle": str(e)},
+            status=500
+        )
 
 def api_informe_listado_dian(request):
     """

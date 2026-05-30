@@ -58,46 +58,6 @@
   <!-- Archivo -->
   <label for="archivo">Seleccionar archivo</label>
   <input type="file" id="archivo" class="form-control mb-3">
-  <div id="overlay" style="
-      display:none;
-      position:fixed;
-      top:0; left:0; right:0; bottom:0;
-      background:rgba(0,0,0,0.5);
-      color:white;
-      font-size:1.5rem;
-      align-items:center;
-      justify-content:center;
-      z-index:9999;">
-      Procesando...
-  </div>
-
-  <!-- Procesar -->
-  <button id="btn-procesar" class="btn btn-primary mb-3">Procesar excel</button>
-
-  <!-- tablas resumen -->
-  <h4 class="mt-4">Cuentas</h4>
-  <table id="tabla1" class="table table-bordered">
-    <thead>
-      <tr>
-        <th>Cuenta</th>
-        <th>Faltante</th>
-        <th>Base</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <h4 class="mt-4">Terceros</h4>
-  <table id="tabla2" class="table table-bordered">
-    <thead>
-      <tr>
-        <th>Tercero</th>
-        <th>Faltante</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
 
   <!-- Checks -->
   <h4 class="mt-4">Agrupar por</h4>
@@ -113,72 +73,6 @@
 
 {% block scripts %}
 <script>
-
-  // --- Funciones para llenar tablas ---
-  function llenarTabla1(datos) {
-    const tbody = document.querySelector("#tabla1 tbody");
-    tbody.innerHTML = "";
-    datos.forEach(row => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.Cuenta}</td>
-        <td>${row.Faltante}</td>
-        <td>${row.Base}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function llenarTabla2(datos) {
-    const tbody = document.querySelector("#tabla2 tbody");
-    tbody.innerHTML = "";
-    datos.forEach(row => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.Tercero}</td>
-        <td>${row.Faltante}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // --- Botón procesar ---
-document.getElementById('btn-procesar').addEventListener('click', () => {
-  const empresa = document.getElementById('empresa').value;
-  const archivo = document.getElementById('archivo').files[0];
-  const token = document.getElementById('token').value;
-
-  if (!empresa || !archivo || !token) {
-    alert("Debes seleccionar empresa, archivo y token antes de procesar");
-    return;
-  }
-
-  // Mostrar overlay antes de iniciar el fetch
-  document.getElementById('overlay').style.display = 'flex';
-
-  const formData = new FormData();
-  formData.append('empresa', empresa);
-  formData.append('archivo', archivo);
-  formData.append('token', token);
-
-  fetch('/amgt/conecta/documentos/validar/', {
-    method: 'POST',
-    body: formData,
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-  })
-  .then(res => res.json())
-  .then(data => {
-    if (data.tabla1) llenarTabla1(data.tabla1);
-    if (data.tabla2) llenarTabla2(data.tabla2);
-  })
-  .catch(err => {
-    alert("Error procesando el archivo: " + err);
-  })
-  .finally(() => {
-    // Ocultar overlay cuando termina
-    document.getElementById('overlay').style.display = 'none';
-  });
-});
 
   // --- Botón enviar (mantiene lógica de checks) ---
   document.getElementById('btn-enviar').addEventListener('click', () => {
