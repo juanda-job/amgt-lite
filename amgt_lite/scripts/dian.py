@@ -147,7 +147,7 @@ def descargar(ruta_descargas, cufes):
     
     """
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context(accept_downloads=True)
 
         page_token = context.new_page()
