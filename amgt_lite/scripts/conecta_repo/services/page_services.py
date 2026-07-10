@@ -1,4 +1,6 @@
 from playwright.sync_api import sync_playwright, Page
+SELECTOR = "#ul_202 >> li:nth-child(1) >> a:has-text('Registro Facturas')"
+
 
 def new_context(p,headless=False):
     browser = p.chromium.launch(headless=headless)
@@ -20,7 +22,7 @@ def login(page: Page, link: str, username: str, password: str):
         page.wait_for_selector('#ul_0 >> #li_23', timeout=8000)
         page.locator('#ul_0 >> #li_23').click()
 
-        page.wait_for_selector('#ul_0 >> #li_23 >> #ul_23 >> a:has-text("Registro Facturas")', timeout=8000)
+        page.wait_for_selector(SELECTOR, timeout=8000)
         return page
 
     except TimeoutError as e:
@@ -31,7 +33,7 @@ def go_to_conecta(page:Page, context, token:str):
     # Esperar a que se abra una nueva página al hacer clic en el botón
             with context.expect_page() as new_page_info:
                 # botón que abre otra pestaña/ventana
-                page.locator('#ul_0 >> #li_23 >> #ul_23 >> a:has-text("Registro Facturas")').click()
+                page.locator(SELECTOR).click()
             page2 = new_page_info.value
             # Ahora puedes usar la nueva página
             page.wait_for_load_state()
